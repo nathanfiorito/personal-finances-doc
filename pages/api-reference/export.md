@@ -10,21 +10,23 @@ Endpoint for exporting transactions as a CSV file.
 GET /api/v2/export/csv
 ```
 
-Returns a CSV file with all transactions for the requested period.
+Returns a CSV file with all transactions for the requested date range. Both parameters are required.
 
 **Query Parameters:**
 
-| Parameter | Type | Description |
-|---|---|---|
-| `start_date` | `YYYY-MM-DD` | Export from this date (default: first day of current month) |
-| `end_date` | `YYYY-MM-DD` | Export to this date (default: today) |
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `start` | `YYYY-MM-DD` | Yes | Export from this date (inclusive) |
+| `end` | `YYYY-MM-DD` | Yes | Export to this date (inclusive) |
 
 **Response `200 OK`:**
 
 ```
-Content-Type: text/csv
-Content-Disposition: attachment; filename="expenses-2026-04.csv"
+Content-Type: text/csv; charset=utf-8
+Content-Disposition: attachment; filename="expenses_{start}_{end}.csv"
 ```
+
+Example filename: `expenses_2026-04-01_2026-04-30.csv`
 
 **CSV columns:**
 

@@ -1,39 +1,6 @@
 # Reports
 
-Endpoints for financial summary and monthly breakdown reports.
-
----
-
-## Summary Report
-
-```http
-GET /api/v2/reports/summary
-```
-
-Returns the total and category breakdown for a given period.
-
-**Query Parameters:**
-
-| Parameter | Type | Description |
-|---|---|---|
-| `start_date` | `YYYY-MM-DD` | Period start (default: first day of current month) |
-| `end_date` | `YYYY-MM-DD` | Period end (default: today) |
-
-**Response `200 OK`:**
-```json
-{
-  "total": 1842.75,
-  "transaction_count": 34,
-  "period": {
-    "start": "2026-04-01",
-    "end": "2026-04-13"
-  },
-  "by_category": [
-    { "category_id": 1, "category_name": "Alimentação", "total": 620.00, "count": 12 },
-    { "category_id": 9, "category_name": "Transporte", "total": 310.50, "count": 8 }
-  ]
-}
-```
+Endpoints for monthly expense/income breakdown.
 
 ---
 
@@ -43,29 +10,34 @@ Returns the total and category breakdown for a given period.
 GET /api/v2/reports/monthly
 ```
 
-Returns total expenses grouped by month for a given year.
+Returns totals grouped by month for a given year.
 
 **Query Parameters:**
 
-| Parameter | Type | Description |
-|---|---|---|
-| `year` | `integer` | Year to report on (default: current year) |
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `year` | `integer` | Yes | Year to report on |
+| `transaction_type` | `"income" \| "expense"` | No | Filter by type |
 
 **Response `200 OK`:**
+
+An array of monthly items — only months with at least one transaction are included.
+
 ```json
-{
-  "year": 2026,
-  "months": [
-    {
-      "month": "2026-01",
-      "total": 3200.00,
-      "transaction_count": 45,
-      "by_category": [
-        { "category_id": 1, "category_name": "Alimentação", "total": 890.00 }
-      ]
-    }
-  ]
-}
+[
+  {
+    "month": 4,
+    "total": "1842.75",
+    "by_category": [
+      { "category": "Alimentação", "total": "620.00" },
+      { "category": "Transporte", "total": "310.50" }
+    ]
+  }
+]
 ```
 
-Only months with at least one transaction are included in the response.
+**Field notes:**
+- `month` — integer month number (1–12)
+- `total` — serialized decimal string
+- `by_category[].category` — category name string
+- `by_category[].total` — serialized decimal string

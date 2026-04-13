@@ -10,17 +10,13 @@ Endpoints for managing expense categories.
 GET /api/v2/categories
 ```
 
-**Query Parameters:**
-
-| Parameter | Type | Description |
-|---|---|---|
-| `active_only` | `boolean` | If `true`, returns only active categories (default: `false`) |
+Returns all categories (active and inactive).
 
 **Response `200 OK`:**
 ```json
 [
-  { "id": 1, "name": "Alimentação", "is_active": true, "created_at": "2026-01-01T00:00:00Z" },
-  { "id": 2, "name": "Transporte", "is_active": true, "created_at": "2026-01-01T00:00:00Z" }
+  { "id": 1, "name": "Alimentação", "is_active": true },
+  { "id": 2, "name": "Transporte", "is_active": true }
 ]
 ```
 
@@ -39,10 +35,8 @@ POST /api/v2/categories
 
 **Response `201 Created`:**
 ```json
-{ "id": 11, "name": "Pets", "is_active": true, "created_at": "2026-04-13T10:00:00Z" }
+{ "id": 11, "name": "Pets", "is_active": true }
 ```
-
-**Response `409 Conflict`:** Category name already exists.
 
 ---
 
@@ -52,9 +46,11 @@ POST /api/v2/categories
 PATCH /api/v2/categories/{id}
 ```
 
+Both fields are optional — send only what changes.
+
 **Request Body:**
 ```json
-{ "name": "Animais de Estimação" }
+{ "name": "Animais de Estimação", "is_active": true }
 ```
 
 **Response `200 OK`:** Updated category object.
@@ -69,7 +65,7 @@ PATCH /api/v2/categories/{id}
 DELETE /api/v2/categories/{id}
 ```
 
-Deactivates the category — does **not** hard-delete it. Expenses linked to this category are preserved.
+Deactivates the category — does **not** hard-delete it. Transactions linked to this category are preserved.
 
 **Response `204 No Content`:** Category deactivated.
 
