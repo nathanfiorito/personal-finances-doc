@@ -1,38 +1,36 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-/* ── Typography ── */
-html {
+/* ── Brand — Orange primary color ── */
+:root {
+  --nextra-primary-hue: 24deg;
+  --nextra-primary-saturation: 93%;
   font-family: 'Inter', sans-serif;
 }
 
 /* ── Dark mode — match frontend design system ── */
+.dark {
+  --nextra-bg: 9, 9, 11; /* #09090B */
+}
+
 .dark body {
   background-color: #09090B;
 }
 
-.dark .nextra-nav-container {
-  background-color: #09090B !important;
-  border-bottom: 1px solid #3F3F46 !important;
-}
-
-.dark .nextra-sidebar-container {
-  background-color: #09090B !important;
-  border-right: 1px solid #3F3F46 !important;
-}
-
-.dark .nextra-content {
-  background-color: #09090B;
-}
-
-/* ── Code blocks — slightly elevated surface in dark mode ── */
+/* ── Code blocks ── */
 .dark pre {
   background-color: #18181B !important;
   border: 1px solid #3F3F46;
 }
 
-.dark code:not(pre code) {
+.dark :not(pre) > code {
   background-color: #27272A;
   border: 1px solid #3F3F46;
+}
+
+/* ── Light mode code blocks ── */
+pre {
+  background-color: #F9FAFB !important;
+  border: 1px solid #E5E7EB;
 }
 
 /* ── Tables ── */
@@ -42,12 +40,6 @@ html {
 
 .dark tbody tr:hover {
   background-color: #18181B;
-}
-
-/* ── Light mode — neutral-50 surface ── */
-pre {
-  background-color: #F9FAFB !important;
-  border: 1px solid #E5E7EB;
 }
 
 thead tr {
