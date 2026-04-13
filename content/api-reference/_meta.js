@@ -1,0 +1,7 @@
+export default {
+  index: 'Overview',
+  transactions: 'Transactions',
+  categories: 'Categories',
+  reports: 'Reports',
+  export: 'Export',
+}

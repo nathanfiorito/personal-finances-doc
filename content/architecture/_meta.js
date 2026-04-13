@@ -1,0 +1,6 @@
+export default {
+  index: 'Overview',
+  backend: 'Backend',
+  frontend: 'Frontend',
+  'telegram-bot': 'Telegram Bot',
+}
