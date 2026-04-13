@@ -34,6 +34,7 @@ export default async function RootLayout({ children }) {
           pageMap={await getPageMap()}
           docsRepositoryBase="https://github.com/nathanfiorito/personal-finances-doc"
           footer={footer}
+          sidebar={{ defaultMenuCollapseLevel: 1, toggleButton: true }}
         >
           {children}
         </Layout>
