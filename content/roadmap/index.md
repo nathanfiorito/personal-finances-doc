@@ -19,7 +19,7 @@ The system is live and in active use. Core features are complete.
 - [x] REST API (hexagonal architecture)
 - [x] Next.js dashboard — expenses, reports, categories
 - [x] Expense and income tracking (`transaction_type`)
-- [x] CI/CD pipeline (GitHub Actions → Render + Vercel)
+- [x] CI/CD pipeline (GitHub Actions → Hostinger VPS with Coolify + Vercel)
 - [x] CSV export
 - [x] Backend migration: Python/FastAPI → Java 25 / Spring Boot 3.4.5
 - [x] Database migration: Supabase → self-hosted PostgreSQL (Flyway)
