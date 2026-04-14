@@ -7,7 +7,7 @@ Endpoint for exporting transactions as a CSV file.
 ## Export CSV
 
 ```http
-GET /api/v2/export/csv
+GET /api/v1/export/csv
 ```
 
 Returns a CSV file with all transactions for the requested date range. Both parameters are required.
@@ -22,11 +22,11 @@ Returns a CSV file with all transactions for the requested date range. Both para
 **Response `200 OK`:**
 
 ```
-Content-Type: text/csv; charset=utf-8
-Content-Disposition: attachment; filename="expenses_{start}_{end}.csv"
+Content-Type: text/csv; charset=UTF-8
+Content-Disposition: attachment; filename="transactions_{start}_{end}.csv"
 ```
 
-Example filename: `expenses_2026-04-01_2026-04-30.csv`
+Example filename: `transactions_2026-04-01_2026-04-30.csv`
 
 **CSV columns:**
 
@@ -38,7 +38,7 @@ Example filename: `expenses_2026-04-01_2026-04-30.csv`
 | `description` | string | Description |
 | `amount` | decimal | Amount in BRL |
 | `category` | string | Category name |
-| `entry_type` | string | `image`, `text`, or `pdf` |
+| `entry_type` | string | `image`, `text`, `pdf`, or `manual` |
 | `confidence` | decimal | AI extraction confidence (0.00–1.00) |
 | `created_at` | ISO 8601 | When the record was created |
 
