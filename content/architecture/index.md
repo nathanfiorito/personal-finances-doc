@@ -6,10 +6,10 @@ Personal Finances follows a hexagonal (ports & adapters) architecture on the bac
 
 ```
 ┌─────────────────┐     ┌──────────────────────────────────┐     ┌──────────────┐
-│  Telegram App   │────▶│           FastAPI Backend         │────▶│   Supabase   │
-│  (user sends    │     │  ┌─────────────┐ ┌─────────────┐ │     │ (PostgreSQL) │
+│  Telegram App   │────▶│        Spring Boot Backend        │────▶│  PostgreSQL  │
+│  (user sends    │     │  ┌─────────────┐ ┌─────────────┐ │     │ (self-hosted)│
 │   receipts)     │     │  │ Telegram    │ │  REST API   │ │     └──────────────┘
-└─────────────────┘     │  │ Adapter     │ │  (BFF)      │ │
+└─────────────────┘     │  │ Controller  │ │  (BFF)      │ │
                         │  └─────────────┘ └─────────────┘ │     ┌──────────────┐
                         │        │                │         │────▶│  OpenRouter  │
                         │        ▼                ▼         │     │  (LLM API)   │
@@ -34,7 +34,8 @@ Personal Finances follows a hexagonal (ports & adapters) architecture on the bac
 | Two LLM models | Sonnet 4.6 for vision/reports (quality); Haiku 4.5 for text tasks (cost) |
 | Mandatory confirmation | Never persist an expense without explicit user approval |
 | In-memory pending state | Keeps DB clean; TTL 10 min to auto-expire unconfirmed entries |
-| OpenAPI hidden in production | Security hardening; enabled only in development |
+| Self-hosted PostgreSQL + Flyway | Full control over schema, no vendor lock-in |
+| Spring JWT (stateless) | No session storage; each request is independently authenticated |
 
 ## Sub-sections
 

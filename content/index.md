@@ -8,15 +8,16 @@ Personal Finances is a private, single-user expense tracking system. It consists
 
 - A **Telegram bot** that receives payment receipts (photo, PDF, or text), extracts and categorizes expenses using AI, and sends a confirmation before saving
 - A **web dashboard** (Next.js) for viewing, filtering, and managing expenses
-- A **FastAPI backend** with hexagonal architecture connecting both
+- A **Spring Boot backend** with hexagonal architecture connecting both
 
 ## Stack
 
 | Component | Technologies |
 |---|---|
-| Backend | Python 3.12, FastAPI, hexagonal architecture |
+| Backend | Java 25, Spring Boot 3.4.5, hexagonal architecture |
+| Auth | Spring Security + JWT (JJWT 0.12.6), BCrypt |
 | LLM | Claude Sonnet 4.6 (vision/reports), Haiku 4.5 (text/categorization) via OpenRouter |
-| Database | Supabase (PostgreSQL) |
+| Database | PostgreSQL (self-hosted), Flyway migrations, Spring Data JPA |
 | Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS |
 | Hosting | Render (backend), Vercel (frontend) |
 

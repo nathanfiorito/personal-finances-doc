@@ -1,6 +1,6 @@
 # Database
 
-Supabase-hosted PostgreSQL instance. RLS is enabled on both tables with a `"service role full access"` policy that grants full access to the backend service key.
+Self-hosted PostgreSQL instance. Schema is managed via Flyway migrations (`db/migration/`). No RLS — access control is enforced at the application layer by Spring Security.
 
 ---
 
@@ -14,15 +14,17 @@ Stores all expense and income records.
 | `amount` | `DECIMAL(10,2)` | No | Transaction amount in BRL |
 | `date` | `DATE` | No | Transaction date |
 | `establishment` | `VARCHAR(255)` | Yes | Merchant or payee name |
-| `description` | `TEXT` | Yes | Free-text description |
+| `description` | `VARCHAR(500)` | Yes | Free-text description |
 | `category_id` | `INT` | No | FK → `categories.id` |
-| `tax_id` | `VARCHAR(18)` | Yes | CNPJ or CPF of the merchant |
-| `entry_type` | `VARCHAR(20)` | No | `'imagem'`, `'texto'`, or `'pdf'` — stored in Portuguese per DB constraint |
-| `transaction_type` | `VARCHAR(10)` | No | `'income'` or `'expense'` (default: `'outcome'` in schema, renamed to `'expense'` via migration) |
-| `confidence` | `DECIMAL(3,2)` | Yes | AI extraction confidence (0.00–1.00) |
-| `raw_data` | `JSONB` | No | Full AI extraction output (default: `{}`) |
+| `tax_id` | `VARCHAR(20)` | Yes | CNPJ or CPF of the merchant |
+| `entry_type` | `VARCHAR(20)` | No | `'image'`, `'text'`, `'pdf'`, or `'manual'` |
+| `transaction_type` | `VARCHAR(10)` | No | `'EXPENSE'` or `'INCOME'` |
+| `payment_method` | `VARCHAR(10)` | Yes | `'CREDIT'` or `'DEBIT'` |
+| `confidence` | `DECIMAL(4,2)` | Yes | AI extraction confidence (0.00–1.00) |
 | `created_at` | `TIMESTAMPTZ` | No | Record creation timestamp |
 | `updated_at` | `TIMESTAMPTZ` | No | Last update timestamp |
+
+> **Note:** `transaction_type` and `payment_method` are stored uppercase in the DB (`'EXPENSE'`, `'CREDIT'`) but returned lowercase by the API (`"expense"`, `"credit"`).
 
 **Indexes:**
 
@@ -32,8 +34,6 @@ Stores all expense and income records.
 | `idx_transactions_category_id` | `category_id` | Filter by category |
 | `idx_transactions_date_category_id` | `(date, category_id)` | Combined date + category queries |
 | `idx_transactions_transaction_type` | `transaction_type` | Filter by income vs expense |
-
-> **Note:** The `payment_method` field (`'credit'` | `'debit'`) exists in the API layer (domain entity and endpoints) but is not yet reflected in the `supabase_schema.sql` file. It may be stored in `raw_data` or added via a pending migration.
 
 ---
 
@@ -45,8 +45,9 @@ Stores expense categories. Deactivating a category preserves all linked transact
 |---|---|---|---|
 | `id` | `SERIAL` | No | Primary key, auto-increment |
 | `name` | `VARCHAR(100)` | No | Category name (unique) |
-| `is_active` | `BOOLEAN` | No | Whether the category is active (default: `true`) |
+| `active` | `BOOLEAN` | No | Whether the category is active (default: `true`) |
 | `created_at` | `TIMESTAMPTZ` | No | Record creation timestamp |
+| `updated_at` | `TIMESTAMPTZ` | No | Last update timestamp |
 
 **Constraint:** `UNIQUE(name)`
 
@@ -59,6 +60,19 @@ categories (id) ──< transactions (category_id)
 ```
 
 `category_id` in `transactions` is `NOT NULL` — every transaction must have a category.
+
+---
+
+## Migrations
+
+Flyway manages schema versions. Migration files live at:
+
+```
+app/src/main/resources/db/migration/
+└── V1__init.sql    — initial schema (categories + transactions tables)
+```
+
+New migrations follow the naming convention `V{N}__{description}.sql`. Flyway runs automatically on application startup.
 
 ---
 
