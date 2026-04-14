@@ -7,7 +7,7 @@ Endpoints for managing expense categories.
 ## List Categories
 
 ```http
-GET /api/v2/categories
+GET /api/v1/categories
 ```
 
 Returns all categories (active and inactive).
@@ -25,7 +25,7 @@ Returns all categories (active and inactive).
 ## Create Category
 
 ```http
-POST /api/v2/categories
+POST /api/v1/categories
 ```
 
 **Request Body:**
@@ -43,14 +43,14 @@ POST /api/v2/categories
 ## Update Category
 
 ```http
-PATCH /api/v2/categories/{id}
+PATCH /api/v1/categories/{id}
 ```
 
-Both fields are optional — send only what changes.
+Updates the category name.
 
 **Request Body:**
 ```json
-{ "name": "Animais de Estimação", "is_active": true }
+{ "name": "Animais de Estimação" }
 ```
 
 **Response `200 OK`:** Updated category object.
@@ -62,7 +62,7 @@ Both fields are optional — send only what changes.
 ## Deactivate Category
 
 ```http
-DELETE /api/v2/categories/{id}
+DELETE /api/v1/categories/{id}
 ```
 
 Deactivates the category — does **not** hard-delete it. Transactions linked to this category are preserved.

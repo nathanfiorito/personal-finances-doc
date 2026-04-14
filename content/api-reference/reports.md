@@ -1,13 +1,40 @@
 # Reports
 
-Endpoints for monthly expense/income breakdown.
+Endpoints for expense/income summaries and monthly breakdowns.
+
+---
+
+## Summary Report
+
+```http
+GET /api/v1/reports/summary
+```
+
+Returns totals grouped by category for a given date range.
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `start` | `YYYY-MM-DD` | Yes | Start date (inclusive) |
+| `end` | `YYYY-MM-DD` | Yes | End date (inclusive) |
+| `type` | `"EXPENSE" \| "INCOME"` | No | Filter by transaction type |
+
+**Response `200 OK`:**
+
+```json
+[
+  { "category": "Alimentação", "total": "620.00" },
+  { "category": "Transporte", "total": "310.50" }
+]
+```
 
 ---
 
 ## Monthly Report
 
 ```http
-GET /api/v2/reports/monthly
+GET /api/v1/reports/monthly
 ```
 
 Returns totals grouped by month for a given year.
@@ -17,7 +44,6 @@ Returns totals grouped by month for a given year.
 | Parameter | Type | Required | Description |
 |---|---|---|---|
 | `year` | `integer` | Yes | Year to report on |
-| `transaction_type` | `"income" \| "expense"` | No | Filter by type |
 
 **Response `200 OK`:**
 
