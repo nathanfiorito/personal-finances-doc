@@ -28,22 +28,23 @@ Content-Disposition: attachment; filename="transactions_{start}_{end}.csv"
 
 Example filename: `transactions_2026-04-01_2026-04-30.csv`
 
-**CSV columns:**
+**CSV columns (in order):**
 
 | Column | Type | Description |
 |---|---|---|
-| `id` | UUID | Transaction ID |
 | `date` | YYYY-MM-DD | Transaction date |
-| `establishment` | string | Merchant name |
-| `description` | string | Description |
 | `amount` | decimal | Amount in BRL |
+| `establishment` | string | Merchant name |
 | `category` | string | Category name |
+| `description` | string | Free-text description |
+| `tax_id` | string | CNPJ/CPF of the merchant |
 | `entry_type` | string | `image`, `text`, `pdf`, or `manual` |
-| `confidence` | decimal | AI extraction confidence (0.00–1.00) |
-| `created_at` | ISO 8601 | When the record was created |
+| `transaction_type` | string | `EXPENSE` or `INCOME` |
+
+The file is UTF-8 encoded with a BOM (`\uFEFF`) so it opens correctly in Excel.
 
 **Example row:**
 ```csv
-id,date,establishment,description,amount,category,entry_type,confidence,created_at
-a1b2c3d4-...,2026-04-13,Supermercado Extra,Weekly groceries,42.50,Alimentação,image,0.97,2026-04-13T10:00:00Z
+date,amount,establishment,category,description,tax_id,entry_type,transaction_type
+2026-04-13,42.50,Supermercado Extra,Alimentação,Weekly groceries,12.345.678/0001-99,image,EXPENSE
 ```
