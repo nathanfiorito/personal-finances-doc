@@ -40,7 +40,7 @@ All frontend API calls include `Authorization: Bearer <jwt>` in the request head
 
 ## Environment Variables (sensitive)
 
-Never commit these values. Store in `.env` (local) and Render / Vercel environment settings (production).
+Never commit these values. Store in `.env` (local) and Coolify (backend) / Vercel (frontend) environment settings (production).
 
 | Variable | Used By | Secret Level |
 |---|---|---|

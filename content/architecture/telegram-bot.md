@@ -8,30 +8,46 @@ The bot receives receipts via webhook (photo, PDF, or text), extracts expense da
 1. User sends receipt (photo / PDF / text)
         │
         ▼
-2. POST /webhook → validate X-Telegram-Bot-Api-Secret-Token + TELEGRAM_ALLOWED_CHAT_ID
+2. POST /webhook
+   ├── TelegramWebhookFilter validates X-Telegram-Bot-Api-Secret-Token (→ 403 if wrong)
+   └── TelegramWebhookController checks chat ID against TELEGRAM_ALLOWED_CHAT_ID (silent ignore if wrong)
         │
         ▼
-3. Route by input type → ProcessMessage use case
+3. Route by input type:
+   ├── Text message       → ProcessMessageUseCase(entryType="text",  content=text)
+   ├── Photo              → download largest photo, base64-encode → ProcessMessageUseCase(entryType="image", content=base64)
+   └── PDF document       → download + extract text → ProcessMessageUseCase(entryType="pdf",  content=text)
         │
         ▼
-4. LLMPort.extract_expense() → structured expense data
+4. ProcessMessageUseCase:
+   a. LlmPort.extractTransaction(content, entryType) → ExtractedTransaction
+   b. CategoryRepository.listAll() → active categories
+   c. LlmPort.categorize(extracted, categoryNames)  → best matching category name
+   d. PendingStatePort.set(chatId, PendingTransaction{TTL=10 min})
+   e. NotifierPort.sendMessage() with inline keyboard:
+         [✅ Confirmar] [❌ Cancelar] [🏷️ Alterar Categoria]
         │
-        ▼
-5. Store in InMemoryPendingStateAdapter (keyed by chat_id, TTL 10 min)
+        ├── User clicks ❌ Cancelar
+        │       └── CancelTransactionUseCase → PendingStatePort.clear() → edit message with ❌
         │
-        ▼
-6. Bot sends confirmation message with inline keyboard [✅ Confirm] [❌ Cancel]
+        ├── User clicks 🏷️ Alterar Categoria
+        │       └── Bot sends a new keyboard with all active categories (2 per row)
+        │               └── User selects category
+        │                       └── ChangeCategoryUseCase → PendingStatePort.updateCategory()
+        │                               → edit confirmation message with updated category
         │
-        ├── User clicks ❌ Cancel → discard pending state
-        │
-        └── User clicks ✅ Confirm → ConfirmExpense use case
+        └── User clicks ✅ Confirmar → ConfirmTransactionUseCase(skipDuplicateCheck=false)
                 │
                 ▼
-           LLMPort.check_duplicate() → compare against 3 most recent expenses
+           a. TransactionRepository.listRecent(3)
+           b. LlmPort.isDuplicate(extracted, recentTransactions)
                 │
-                ├── Duplicate detected → bot warns user, asks to override
+                ├── Duplicate detected → bot warns, sends [Salvar mesmo assim] [Cancelar] → return
+                │       └── User clicks "Salvar mesmo assim"
+                │               └── ConfirmTransactionUseCase(skipDuplicateCheck=true)
                 │
-                └── No duplicate (or user overrides) → ExpenseRepository.save()
+                └── No duplicate (or skipped) → TransactionRepository.save(extracted, categoryId)
+                        └── PendingStatePort.clear() → edit message with ✅
 ```
 
 ## Bot Commands
@@ -44,7 +60,7 @@ The bot receives receipts via webhook (photo, PDF, or text), extracts expense da
 | `/relatorio semana` | Report for current week |
 | `/relatorio anterior` | Report for previous month |
 | `/relatorio mes` | Report for current month |
-| `/relatorio MM/AAAA` | Report for a specific month |
+| `/relatorio MM/AAAA` | Report for a specific month (e.g. `/relatorio 03/2026`) |
 | `/exportar` | Export current month as CSV |
 | `/exportar semana\|anterior\|mes\|MM/AAAA` | Export for a specific period |
 | `/categorias` | List active categories |
@@ -52,12 +68,28 @@ The bot receives receipts via webhook (photo, PDF, or text), extracts expense da
 
 ## Pending State
 
-- Stored in-memory in `InMemoryPendingStateAdapter`
-- Keyed by `chat_id` (one pending expense per chat at a time)
-- TTL: 10 minutes — auto-expires unconfirmed entries
-- Not persisted across server restarts
+- Stored in-memory in `InMemoryPendingStateAdapter` (`ConcurrentHashMap<Long, PendingTransaction>`)
+- Keyed by `chat_id` — one pending transaction per chat at a time
+- TTL: 10 minutes (`PendingTransaction.expiresAt = Instant.now().plus(10 min)`)
+- Expiry is checked lazily on `get()` and `updateCategory()` — no background sweep
+- Not persisted across server restarts; a restart clears all pending state
 
 ## Security
 
-- Webhook URL protected by `X-Telegram-Bot-Api-Secret-Token` header
-- All messages from chat IDs other than `TELEGRAM_ALLOWED_CHAT_ID` are silently ignored
+| Control | Implementation |
+|---|---|
+| Webhook secret | `TelegramWebhookFilter` checks `X-Telegram-Bot-Api-Secret-Token` before JWT filter; returns 403 if missing or wrong |
+| Chat ID restriction | `TelegramWebhookController` silently ignores any message/callback from a chat ID other than `TELEGRAM_ALLOWED_CHAT_ID` |
+| HTTPS | Telegram Bot API requires HTTPS for webhook URLs; enforced by Cloudflare Tunnel (dev) or the VPS reverse proxy (prod) |
+
+## Callback Data Format
+
+Inline keyboard buttons use these `callback_data` values:
+
+| Value | Action |
+|---|---|
+| `confirm` | Confirm with duplicate check |
+| `force_confirm` | Confirm, skipping duplicate check |
+| `cancel` | Cancel and discard pending state |
+| `edit_category` | Show category selection keyboard |
+| `set_category:{id}:{name}` | Set a specific category (e.g. `set_category:3:Transporte`) |

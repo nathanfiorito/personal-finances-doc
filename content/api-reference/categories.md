@@ -10,13 +10,13 @@ Endpoints for managing expense categories.
 GET /api/v1/categories
 ```
 
-Returns all categories (active and inactive).
+Returns all **active** categories. Inactive (deactivated) categories are excluded.
 
 **Response `200 OK`:**
 ```json
 [
-  { "id": 1, "name": "Alimentação", "is_active": true },
-  { "id": 2, "name": "Transporte", "is_active": true }
+  { "id": 1, "name": "Alimentação", "active": true },
+  { "id": 2, "name": "Transporte", "active": true }
 ]
 ```
 
@@ -35,7 +35,7 @@ POST /api/v1/categories
 
 **Response `201 Created`:**
 ```json
-{ "id": 11, "name": "Pets", "is_active": true }
+{ "id": 11, "name": "Pets", "active": true }
 ```
 
 ---
@@ -65,7 +65,7 @@ Updates the category name.
 DELETE /api/v1/categories/{id}
 ```
 
-Deactivates the category — does **not** hard-delete it. Transactions linked to this category are preserved.
+Soft-deactivates the category — does **not** hard-delete it. All transactions linked to this category are preserved with their `category_id` intact.
 
 **Response `204 No Content`:** Category deactivated.
 
