@@ -19,7 +19,7 @@ Personal Finances is a private, single-user expense tracking system. It consists
 | LLM | Claude Sonnet 4.6 (vision/reports), Haiku 4.5 (text/categorization) via OpenRouter |
 | Database | PostgreSQL (self-hosted), Flyway migrations, Spring Data JPA |
 | Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS |
-| Hosting | Render (backend), Vercel (frontend) |
+| Hosting | Hostinger VPS with Coolify (backend), Vercel (frontend) |
 
 ## Sections
 
