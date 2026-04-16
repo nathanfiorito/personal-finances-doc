@@ -227,7 +227,19 @@ interface PendingStatePort {
 | `CategoryNotFoundException` | `domain.category.exceptions` | `UpdateCategoryUseCase`, `DeactivateCategoryUseCase`, `TransactionRepositoryAdapter` |
 | `LlmExtractionException` | `domain.transaction.exceptions` | `OpenRouterLlmAdapter` on parse/HTTP failure |
 
-All three are mapped to HTTP responses by `GlobalExceptionHandler`:
-- `TransactionNotFoundException` → `404 Not Found`
-- `CategoryNotFoundException` → `404 Not Found`
-- `LlmExtractionException` → `500 Internal Server Error`
+All exceptions are mapped to HTTP responses by `GlobalExceptionHandler` using a standardised `ErrorResponse` envelope (`status`, `error`, `message`, `timestamp`, optional `details`):
+
+| Exception / Scenario | HTTP Status |
+|---|---|
+| `TransactionNotFoundException` | `404 Not Found` |
+| `CategoryNotFoundException` | `404 Not Found` |
+| `LlmExtractionException` | `500 Internal Server Error` |
+| `MethodArgumentNotValidException` / `ConstraintViolationException` | `400 Bad Request` (with field-level `details`) |
+| `MissingServletRequestParameterException` / `MethodArgumentTypeMismatchException` | `400 Bad Request` |
+| `HttpMessageNotReadableException` / `IllegalArgumentException` | `400 Bad Request` |
+| `AccessDeniedException` | `403 Forbidden` |
+| `NoResourceFoundException` | `404 Not Found` |
+| `HttpRequestMethodNotSupportedException` | `405 Method Not Allowed` |
+| `DataIntegrityViolationException` | `409 Conflict` |
+| `HttpMediaTypeNotSupportedException` | `415 Unsupported Media Type` |
+| Any uncaught `Exception` | `500 Internal Server Error` |
