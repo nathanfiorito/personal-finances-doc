@@ -36,6 +36,8 @@ Returns a paginated list of transactions alongside all active categories. Used b
         "entry_type": "image",
         "transaction_type": "expense",
         "payment_method": "debit",
+        "card_id": null,
+        "card_alias": null,
         "confidence": 0.97,
         "created_at": "2026-04-13T10:00:00Z"
       }
@@ -96,6 +98,7 @@ POST /api/v1/transactions
 | `amount` | `decimal` | Yes | Positive value, max 999999.99 |
 | `category_id` | `integer` | Yes | Must reference an existing category |
 | `payment_method` | `"credit" \| "debit"` | Yes | Payment method |
+| `card_id` | `integer` | Conditional | Required when `payment_method` is `"credit"`, must be null otherwise |
 | `date` | `YYYY-MM-DD` | No | Defaults to today if omitted |
 | `transaction_type` | `"expense" \| "income"` | No | Default: `"expense"` |
 | `entry_type` | `string` | No | Default: `"text"` |
