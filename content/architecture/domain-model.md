@@ -39,6 +39,8 @@ record Transaction(
     String       entryType,         // "text" | "pdf" | "image" | "manual"
     TransactionType  transactionType,
     PaymentMethod    paymentMethod,
+    Integer      cardId,
+    String       cardAlias,         // denormalised card alias
     Double       confidence,
     LocalDateTime createdAt
 )
@@ -76,7 +78,8 @@ record TransactionUpdate(
     String           description,
     Integer          categoryId,
     PaymentMethod    paymentMethod,
-    TransactionType  transactionType
+    TransactionType  transactionType,
+    Integer          cardId
 )
 ```
 
@@ -104,6 +107,59 @@ record PendingTransaction(
 Factory method `PendingTransaction.create(extracted, category, categoryId, chatId, messageId)` sets `expiresAt = Instant.now().plus(10 min)`.
 
 `isExpired()` returns `true` if `Instant.now().isAfter(expiresAt)`.
+
+---
+
+## Card Records
+
+### `Card`
+
+```java
+record Card(
+    int           id,
+    String        alias,
+    String        bank,
+    String        lastFourDigits,
+    int           closingDay,
+    int           dueDay,
+    boolean       active,
+    LocalDateTime createdAt
+)
+```
+
+### `Invoice`
+
+Represents a billing period's transactions for a specific card.
+
+```java
+record Invoice(
+    int             cardId,
+    LocalDate       periodStart,
+    LocalDate       periodEnd,
+    LocalDate       closingDate,
+    LocalDate       dueDate,
+    BigDecimal      total,
+    List<Transaction> transactions
+)
+```
+
+### `InvoicePrediction`
+
+AI-generated spending prediction for a billing cycle. Cached in the database, refreshed every 24 hours.
+
+```java
+record InvoicePrediction(
+    int           cardId,
+    BigDecimal    predictedTotal,
+    BigDecimal    currentTotal,
+    int           daysRemaining,
+    BigDecimal    dailyAverage,
+    LocalDateTime generatedAt,
+    String        confidence,       // "low", "medium", "high"
+    BigDecimal    projectedRemaining,
+    int           basedOnInvoices
+)
+```
 
 ---
 
@@ -163,6 +219,9 @@ interface LlmPort {
 
     // Return the best matching category name from the provided list
     String categorize(ExtractedTransaction extracted, List<String> categoryNames);
+
+    // Generate a spending prediction for the current billing cycle
+    InvoicePrediction generateInvoicePrediction(int cardId, List<Invoice> historicalInvoices, Invoice currentInvoice);
 }
 ```
 
@@ -171,9 +230,11 @@ interface LlmPort {
 ```java
 interface TransactionRepository {
     Transaction            save(ExtractedTransaction extracted, int categoryId);
+    Transaction            save(ExtractedTransaction extracted, int categoryId, Integer cardId);
     Optional<Transaction>  findById(UUID id);
     PageResult<Transaction> listPaginated(int page, int pageSize);
     List<Transaction>      listByPeriod(LocalDate start, LocalDate end, Optional<TransactionType> type);
+    List<Transaction>      listByCardAndPeriod(int cardId, LocalDate start, LocalDate end);
     List<Transaction>      listRecent(int limit);
     Optional<Transaction>  update(UUID id, TransactionUpdate data);
     boolean                delete(UUID id);
@@ -190,6 +251,27 @@ interface CategoryRepository {
     PageResult<Category>   listPaginated(int page, int pageSize, boolean activeOnly);
     Optional<Category>     update(int id, String name);
     boolean                deactivate(int id);
+}
+```
+
+### `CardRepository`
+
+```java
+interface CardRepository {
+    Card               save(String alias, String bank, String lastFourDigits, int closingDay, int dueDay);
+    Optional<Card>     findById(int id);
+    List<Card>         listAll();                        // active only
+    Optional<Card>     update(int id, String alias, String bank, String lastFourDigits, int closingDay, int dueDay);
+    boolean            deactivate(int id);
+}
+```
+
+### `InvoicePredictionRepository`
+
+```java
+interface InvoicePredictionRepository {
+    Optional<InvoicePrediction> findByCardAndMonth(int cardId, LocalDate invoiceMonth);
+    InvoicePrediction           save(InvoicePrediction prediction);
 }
 ```
 
@@ -225,6 +307,7 @@ interface PendingStatePort {
 |---|---|---|
 | `TransactionNotFoundException` | `domain.transaction.exceptions` | `GetTransactionUseCase`, `UpdateTransactionUseCase`, `DeleteTransactionUseCase` |
 | `CategoryNotFoundException` | `domain.category.exceptions` | `UpdateCategoryUseCase`, `DeactivateCategoryUseCase`, `TransactionRepositoryAdapter` |
+| `CardNotFoundException` | `domain.card.exceptions` | `GetCardUseCase`, `UpdateCardUseCase`, `DeactivateCardUseCase`, `GetInvoiceUseCase` |
 | `LlmExtractionException` | `domain.transaction.exceptions` | `OpenRouterLlmAdapter` on parse/HTTP failure |
 
 All exceptions are mapped to HTTP responses by `GlobalExceptionHandler` using a standardised `ErrorResponse` envelope (`status`, `error`, `message`, `timestamp`, optional `details`):
@@ -233,6 +316,7 @@ All exceptions are mapped to HTTP responses by `GlobalExceptionHandler` using a 
 |---|---|
 | `TransactionNotFoundException` | `404 Not Found` |
 | `CategoryNotFoundException` | `404 Not Found` |
+| `CardNotFoundException` | `404 Not Found` |
 | `LlmExtractionException` | `500 Internal Server Error` |
 | `MethodArgumentNotValidException` / `ConstraintViolationException` | `400 Bad Request` (with field-level `details`) |
 | `MissingServletRequestParameterException` / `MethodArgumentTypeMismatchException` | `400 Bad Request` |
