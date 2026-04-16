@@ -33,15 +33,42 @@ Authorization: Bearer <jwt>
 
 Token lifetime is 7 days (604 800 s). The `/api/auth/**` and `/webhook` routes are public. All `/api/v1/*` routes require a valid JWT.
 
+## Error Response Format
+
+All errors return a standardised JSON envelope handled by `GlobalExceptionHandler`:
+
+```json
+{
+  "status": 400,
+  "error": "Bad Request",
+  "message": "amount is required, category_id is required",
+  "timestamp": "2026-04-16T10:30:00",
+  "details": {
+    "amount": "amount is required",
+    "category_id": "category_id is required"
+  }
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `status` | `int` | HTTP status code |
+| `error` | `string` | HTTP reason phrase |
+| `message` | `string` | Human-readable summary |
+| `timestamp` | `string` | ISO 8601 timestamp of the error |
+| `details` | `map<string, string>` | Field-level errors (only present for validation failures; omitted otherwise) |
+
 ## Common Error Codes
 
 | Code | Situation |
 |---|---|
-| `400 Bad Request` | Malformed request body or missing required fields |
+| `400 Bad Request` | Malformed body, missing/invalid params, validation failure |
 | `401 Unauthorized` | Missing, malformed, or invalid JWT |
-| `403 Forbidden` | Webhook secret token mismatch |
-| `404 Not Found` | Resource does not exist |
-| `422 Unprocessable Entity` | Bean validation failure — check the request body |
+| `403 Forbidden` | Webhook secret token mismatch or access denied |
+| `404 Not Found` | Resource does not exist or unknown route |
+| `405 Method Not Allowed` | Wrong HTTP method for the endpoint |
+| `409 Conflict` | Database constraint violation (e.g. duplicate name) |
+| `415 Unsupported Media Type` | Request Content-Type not supported |
 | `500 Internal Server Error` | Unexpected server error |
 
 ## CORS
