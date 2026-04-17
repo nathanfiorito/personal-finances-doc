@@ -1,0 +1,136 @@
+# Invoice Import
+
+Endpoints for importing a credit-card invoice PDF in batch. The user uploads a PDF, reviews the extracted transactions in the frontend, then commits the approved set in one shot.
+
+## How it works
+
+1. **PDF extraction:** Apache PDFBox extracts text from the uploaded file. The text is sent to Claude Haiku 4.5 (via OpenRouter), which extracts individual line items and the card's last 4 digits from the invoice header.
+2. **Card auto-detection:** the extracted last 4 digits are matched against active cards. If a match is found, `detected_card.matched_card_id` is populated and the frontend shows the card name as read-only. If no match is found (or digits could not be extracted), the frontend forces the user to pick a card from a dropdown before enabling the Import button.
+3. **Duplicate detection:** deterministic per `(date, amount within R$0.01, normalized establishment name)`. Rows flagged as possible duplicates are returned with `is_possible_duplicate=true` and are unchecked by default in the preview table.
+4. **Categorization:** the LLM maps each issuer hint (e.g. "restaurante", "saúde") to one of the active categories. If no category fits confidently, `suggested_category_id` is returned as `null`.
+5. **Import:** imported rows are tagged `entry_type='invoice'`, `transaction_type='EXPENSE'`, `payment_method='CREDIT'`, and `confidence=null` (the user already reviewed them). All rows share the resolved `card_id` and are inserted in a single database transaction.
+
+Nothing is persisted during the preview step — only the import endpoint writes to the database.
+
+---
+
+## Preview Invoice
+
+```http
+POST /api/v1/invoices/import/preview
+```
+
+Extracts transactions from a credit-card invoice PDF and returns a preview. No data is persisted.
+
+**Auth:** `Authorization: Bearer <token>`
+
+**Request:** `multipart/form-data`
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `file` | `binary` | Yes | PDF file, max 10 MB |
+
+**Response `200 OK`:**
+
+```json
+{
+  "source_file_name": "Fatura_Itau_20260416-161706.pdf",
+  "detected_card": {
+    "last_four_digits": "7981",
+    "matched_card_id": 2,
+    "matched_card_alias": "Itaú Uniclass Black",
+    "matched_card_bank": "Itaú"
+  },
+  "items": [
+    {
+      "temp_id": "a1b2c3d4",
+      "date": "2025-12-28",
+      "establishment": "Google YouTube MemberSA",
+      "description": null,
+      "amount": 1.99,
+      "transaction_type": "EXPENSE",
+      "payment_method": "CREDIT",
+      "suggested_category_id": 7,
+      "suggested_category_name": "Serviços",
+      "issuer_hint": "serviços",
+      "is_international": false,
+      "original_currency": null,
+      "original_amount": null,
+      "is_possible_duplicate": false,
+      "duplicate_of_transaction_id": null,
+      "confidence": 0.95
+    }
+  ]
+}
+```
+
+**`detected_card` semantics:**
+
+| Scenario | `last_four_digits` | `matched_card_id` | `matched_card_alias` / `matched_card_bank` |
+|---|---|---|---|
+| Digits extracted and matched to an active card | populated | populated | populated |
+| Digits extracted but no active card matches | populated | `null` | `null` |
+| Digits could not be extracted from the PDF | `null` | `null` | `null` |
+
+In the last two cases the frontend must show a card picker and require the user to choose before enabling import.
+
+**Error responses:**
+
+| Status | Reason |
+|---|---|
+| `400 Bad Request` | File is not a PDF, exceeds 10 MB, or PDF has no extractable text |
+| `422 Unprocessable Entity` | LLM response failed JSON schema validation |
+| `500 Internal Server Error` | Infrastructure failure (OpenRouter unavailable, etc.) |
+
+---
+
+## Import Invoice
+
+```http
+POST /api/v1/invoices/import
+```
+
+Inserts the user-approved transactions from the preview into the database in a single atomic operation.
+
+**Auth:** `Authorization: Bearer <token>`
+
+**Request:** `application/json`
+
+```json
+{
+  "card_id": 2,
+  "items": [
+    {
+      "date": "2025-12-28",
+      "establishment": "Google YouTube MemberSA",
+      "description": null,
+      "amount": 1.99,
+      "transaction_type": "EXPENSE",
+      "payment_method": "CREDIT",
+      "category_id": 7
+    }
+  ]
+}
+```
+
+`card_id` at the top level applies to every item in the batch (an invoice belongs to exactly one card). `temp_id` from the preview is stripped and not sent. `confidence` is not included — imported rows are stored with `confidence=null`.
+
+**Response `200 OK`:**
+
+```json
+{
+  "imported_count": 52,
+  "card_id": 2,
+  "transaction_ids": ["uuid1", "uuid2", "..."]
+}
+```
+
+**Error responses:**
+
+| Status | Reason |
+|---|---|
+| `400 Bad Request` | Payload validation failure: missing `card_id`, invalid date format, `amount` ≤ 0, or empty `items` array |
+| `422 Unprocessable Entity` | Referenced `card_id` not found or inactive, or any `category_id` not found or inactive — the entire batch is rolled back |
+| `500 Internal Server Error` | Infrastructure failure |
+
+All errors use the standard `ErrorResponse` shape (`status`, `error`, `message`, `timestamp`, optional `details`).
