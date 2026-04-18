@@ -35,5 +35,5 @@ To add a page, create a `.md` file inside the relevant section. To reorder or re
 
 ## Related Repositories
 
-- [personal-finances-backend](https://github.com/nathanfiorito/personal-finances-backend) — FastAPI + Telegram bot
-- [personal-finances-frontend](https://github.com/nathanfiorito/personal-finances-frontend) — Next.js web dashboard
+- [personal-finances-backend](https://github.com/nathanfiorito/personal-finances-backend) — Spring Boot + Telegram bot
+- [personal-finances-frontend](https://github.com/nathanfiorito/personal-finances-frontend) — React SPA dashboard (Vite)
